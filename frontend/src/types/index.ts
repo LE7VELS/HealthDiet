@@ -66,3 +66,14 @@ export type Recommendation = {
 export type AppBootstrap = {
   user: Pick<UserProfile, 'id' | 'username' | 'email'>
 }
+
+export type RegisterRequest = {
+  username: string
+  email: string
+  password: string
+}
+
+export type RegisterResponse = {
+  sessionId: string
+  user: Pick<UserProfile, 'id' | 'username' | 'email'>
+}

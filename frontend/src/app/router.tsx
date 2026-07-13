@@ -2,6 +2,7 @@ import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AppShell } from './shell/AppShell'
 import { ProtectedRoute } from './shell/ProtectedRoute'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
+import { RegisterPage } from '../pages/RegisterPage'
 
 export const router = createBrowserRouter([
   {
@@ -14,7 +15,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/register',
-    element: <PlaceholderPage title="注册" description="注册功能将在后续业务阶段实现。" />,
+    element: <RegisterPage />,
   },
   {
     element: <ProtectedRoute />,
