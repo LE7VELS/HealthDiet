@@ -1,0 +1,66 @@
+# --------------------
+# Environment variables
+# --------------------
+.env
+.env.*
+!.env.example
+
+# --------------------
+# Frontend: React / Vite / TypeScript
+# --------------------
+node_modules/
+dist/
+coverage/
+
+*.tsbuildinfo
+
+# Vite local files
+vite.config.*.timestamp-*
+*.local
+
+# --------------------
+# Backend: Go
+# --------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test binaries and coverage
+*.test
+*.out
+coverage.out
+
+# Compiled application binaries
+/bin/
+/backend/bin/
+/backend/tmp/
+
+# Air hot reload
+tmp/
+
+# --------------------
+# Logs
+# --------------------
+*.log
+logs/
+
+# --------------------
+# Local uploaded files
+# Upload/OSS integration code should remain tracked;
+# credentials and endpoints belong in ignored .env files.
+# --------------------
+uploads/
+
+# --------------------
+# IDE
+# --------------------
+.vscode/
+.idea/
+
+# --------------------
+# OS files
+# --------------------
+.DS_Store
+Thumbs.db
