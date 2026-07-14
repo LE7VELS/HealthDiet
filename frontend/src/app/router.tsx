@@ -1,8 +1,11 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { AppShell } from './shell/AppShell'
 import { ProtectedRoute } from './shell/ProtectedRoute'
+import { PublicOnlyRoute } from './shell/PublicOnlyRoute'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
+import { LoginPage } from '../pages/LoginPage'
 import { RegisterPage } from '../pages/RegisterPage'
+import { DashboardPage } from '../pages/DashboardPage'
 
 export const router = createBrowserRouter([
   {
@@ -10,12 +13,11 @@ export const router = createBrowserRouter([
     element: <Navigate to="/login" replace />,
   },
   {
-    path: '/login',
-    element: <PlaceholderPage title="登录" description="登录功能将在后续业务阶段实现。" />,
-  },
-  {
-    path: '/register',
-    element: <RegisterPage />,
+    element: <PublicOnlyRoute />,
+    children: [
+      { path: '/login', element: <LoginPage /> },
+      { path: '/register', element: <RegisterPage /> },
+    ],
   },
   {
     element: <ProtectedRoute />,
@@ -25,7 +27,7 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard', element: <PlaceholderPage title="首页概览" /> },
+          { path: 'dashboard', element: <DashboardPage /> },
           { path: 'meals', element: <PlaceholderPage title="饮食记录" /> },
           { path: 'meals/new', element: <PlaceholderPage title="新建饮食记录" /> },
           { path: 'foods', element: <PlaceholderPage title="食品与菜谱库" /> },

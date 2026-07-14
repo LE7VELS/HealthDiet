@@ -23,5 +23,9 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
     throw new ApiError('请求失败，请稍后重试。', response.status)
   }
 
+  if (response.status === 204) {
+    return undefined as T
+  }
+
   return response.json() as Promise<T>
 }

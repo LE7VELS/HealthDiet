@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { Banner, Button, PasswordField, TextField, useAppToast } from '../../../components/ui'
+import { Banner, Button, PasswordField, Text, TextField, useAppToast } from '../../../components/ui'
 import { ApiError, registerUser } from '../../../lib/api'
 import { activateDemoSession } from '../../../lib/storage/session'
 import { registerSchema, type RegisterFormValues } from '../schemas/register-schema'
@@ -137,9 +137,9 @@ export function RegisterForm() {
         />
       </div>
 
-      <p className="register-form__notice">
+      <Text as="p" className="register-form__notice" color="secondary" type="supporting">
         注册即表示你理解本产品仅提供日常膳食记录与营养参考，不替代医疗诊断或专业建议。
-      </p>
+      </Text>
 
       <Button
         className="register-form__submit"

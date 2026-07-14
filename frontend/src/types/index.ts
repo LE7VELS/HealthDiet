@@ -77,3 +77,13 @@ export type RegisterResponse = {
   sessionId: string
   user: Pick<UserProfile, 'id' | 'username' | 'email'>
 }
+
+export type LoginRequest = {
+  identifier: string
+  password: string
+}
+
+export type LoginResponse = {
+  sessionId: string
+  user: Pick<UserProfile, 'id' | 'username' | 'email'>
+}

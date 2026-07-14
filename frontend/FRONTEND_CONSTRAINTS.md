@@ -9,7 +9,7 @@
 ## 2. 技术栈
 
 - React + TypeScript + Vite。
-- UI 使用 Astryx Design System，自定义样式优先使用其 Token 和 StyleX。
+- UI 使用 Astryx Design System，使用已有的组件https://astryx.atmeta.com/components，并遵循其Best practices规则，自定义样式优先使用其 Token 和 StyleX。
 - 路由使用 React Router，服务端数据状态使用 TanStack Query。
 - 表单使用 React Hook Form + Zod，图表使用 ECharts。
 - 不引入 Redux，除非后续出现明确的复杂全局状态。
@@ -23,7 +23,7 @@
 - 上传组件必须支持：电脑选择/拖拽文件，手机拍照/相册选择，并提供预览、类型和大小校验。
 - 图片上传必须通过 `lib/api` 的统一接口；未来接入真实服务时，由 Go API 负责本地文件系统或 OSS 等对象存储的持久化，前端不得硬编码 OSS 密钥和真实存储地址。
 - 页面必须同时在常见手机宽度和桌面宽度下可用，不允许只做桌面端后简单缩放。
-- 编写代码要有适当的中文注释
+- 编写代码要有中文注释
 
 ## 4. Git 约束
 
