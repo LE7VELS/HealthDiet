@@ -1,43 +1,64 @@
 # 前端开发约束
 
-## 1. 当前范围
+> 页面要求见 [`FRONTEND_REQUIREMENTS.md`](./FRONTEND_REQUIREMENTS.md)，接口见 [`../API_CONTRACT.md`](../API_CONTRACT.md)。
 
-- 当前只实现前端，不引入 AI，不编写真实后端逻辑。
-- 产品为响应式 Web，同时支持电脑和手机。
-- 优先完成：登录注册、个人档案、食品库、饮食记录、营养报告和推荐页面。
-
-## 2. 技术栈
+## 1. 技术栈
 
 - React + TypeScript + Vite。
-- UI 使用 Astryx Design System，使用已有的组件https://astryx.atmeta.com/components，并遵循其Best practices规则，自定义样式优先使用其 Token 和 StyleX。
-- 路由使用 React Router，服务端数据状态使用 TanStack Query。
-- 表单使用 React Hook Form + Zod，图表使用 ECharts。
-- 不引入 Redux，除非后续出现明确的复杂全局状态。
+- Astryx Design System + StyleX。
+- React Router。
+- TanStack Query。
+- React Hook Form + Zod。
+- ECharts。
 
-## 3. 开发规则
+不增加 Redux 或第二套 UI、请求缓存方案，除非出现明确需求。
 
-- 使用 TypeScript strict 模式，避免 `any`。
-- 业务按 `features` 组织；Astryx 组件统一经 `components/ui` 封装后使用。
-- API 请求统一放在 `lib/api`，地址来自 `VITE_API_BASE_URL`，禁止在页面内硬编码。
-- 后端完成前使用独立 Mock 数据，页面不得与 Mock 实现强耦合。
-- 上传组件必须支持：电脑选择/拖拽文件，手机拍照/相册选择，并提供预览、类型和大小校验。
-- 图片上传必须通过 `lib/api` 的统一接口；未来接入真实服务时，由 Go API 负责本地文件系统或 OSS 等对象存储的持久化，前端不得硬编码 OSS 密钥和真实存储地址。
-- 页面必须同时在常见手机宽度和桌面宽度下可用，不允许只做桌面端后简单缩放。
-- 编写代码要有中文注释
+## 2. 代码结构
 
-## 4. Git 约束
+- 页面和路由放在 `app`、`pages`。
+- 业务按 `features` 分为 auth、profile、foods、meals、nutrition。
+- Astryx 组件通过 `components/ui` 封装。
+- API 调用集中在 `lib/api`，页面不直接拼 URL。
+- 使用 TypeScript strict，避免 `any`。
+- API DTO 和页面展示模型可以分开，但不要过度抽象。
 
-- 项目根目录必须保留 `.gitignore`。
-- 禁止提交 `node_modules`、`dist`、`.env`、日志、缓存、IDE 配置和本地上传文件。OSS 接入代码与 `.env.example` 等配置示例可以提交，但不得包含真实密钥、Token 或服务地址。
-- 密钥、Token 和真实服务地址不得入库；只提交 `.env.example`。
-- 修改前先检查 Git 状态，不覆盖或删除与当前任务无关的改动。
-- 默认采用功能分支 + Pull Request 的协作流程：从最新的 `main` 创建独立分支，完成修改和检查后推送该分支，再通过 PR 合并到 `main`。
-- PR 应清楚说明改动内容、改动原因、影响范围和已执行的检查；存在未完成事项或需要进一步确认时，应创建 Draft PR。
-- 不直接向 `main` 推送改动；只有用户明确授权直接推送时才允许例外，且禁止强制推送。
-- 未经明确要求，不执行 commit、push、rebase、reset 或强制操作。
+## 3. API 和状态
 
-## 5. 完成标准
+- 地址来自 `VITE_API_BASE_URL`。
+- 服务端数据使用 TanStack Query。
+- Mutation 后刷新受影响的数据；饮食记录变化要刷新列表、Dashboard、每日汇总和趋势。
+- 以后端营养计算和规则提示为准。
+- 正确区分 `null` 和 `0`。
+- 认证失败统一清理会话并跳转登录。
 
-- `lint`、TypeScript 检查和生产构建通过。
-- 手机与电脑布局可用，主要页面无明显溢出。
-- 页面具备加载、空数据和错误状态，浏览器控制台无未处理错误。
+## 4. 表单和上传
+
+- 表单使用 React Hook Form + Zod。
+- 客户端校验用于改善体验，服务端校验才是最终结果。
+- 提交中禁止重复提交，失败后保留用户输入。
+- 图片支持电脑选择或拖拽、手机拍照或相册选择。
+- 每条记录最多一张图片，只允许 JPEG、PNG、WebP，最大 10 MB。
+- 前端不得保存 OSS 密钥或服务端文件路径。
+
+## 5. 样式和交互
+
+- 同时适配手机和电脑，不做单纯缩放。
+- 所有数据页有加载、空数据和错误状态。
+- 成功使用 Toast，删除使用确认对话框。
+- 表单有标签，主要操作可用键盘完成。
+
+## 6. 检查方式
+
+当前以手工功能测试为主，重点检查主流程、错误提示、图片上传和响应式布局。
+
+提交前执行：
+
+- TypeScript 检查。
+- lint。
+- 生产构建。
+
+## 7. Git
+
+- 不提交 `node_modules`、`dist`、真实 `.env`、密钥、日志和缓存。
+- 不覆盖无关改动。
+- 未经授权不执行 commit、push、rebase、reset 或强制操作。
