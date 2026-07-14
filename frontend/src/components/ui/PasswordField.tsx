@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup'
 import { TextInput, type TextInputProps } from '@astryxdesign/core/TextInput'
+import { Button } from './Button'
 
 type PasswordFieldProps = Omit<TextInputProps, 'type' | 'status'> & {
   error?: string
@@ -30,15 +31,15 @@ export function PasswordField({
         type={isVisible ? 'text' : 'password'}
       />
       <InputGroupText>
-        <button
-          aria-label={`${isVisible ? '隐藏' : '显示'}${label}`}
-          aria-pressed={isVisible}
-          className="ui-password-toggle"
+        <Button
+          label={`${isVisible ? '隐藏' : '显示'}${label}`}
           onClick={() => setIsVisible((value) => !value)}
+          size="sm"
           type="button"
+          variant="ghost"
         >
           {isVisible ? '隐藏' : '显示'}
-        </button>
+        </Button>
       </InputGroupText>
     </InputGroup>
   )

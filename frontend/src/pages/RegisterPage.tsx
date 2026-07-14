@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Surface } from '../components/ui'
+import { Badge, Heading, Surface, Text } from '../components/ui'
 import { RegisterForm } from '../features/auth/components/RegisterForm'
 
 export function RegisterPage() {
@@ -12,9 +12,13 @@ export function RegisterPage() {
         </Link>
 
         <div className="auth-page__intro-copy">
-          <span className="auth-page__eyebrow">从今天开始，更了解每一餐</span>
-          <h1 id="register-intro-title">让饮食记录成为一种轻松的日常</h1>
-          <p>集中管理饮食、营养趋势和个人档案，为每一次选择提供清晰的膳食参考。</p>
+          <Text className="auth-page__eyebrow" color="secondary" type="supporting">
+            从今天开始，更了解每一餐
+          </Text>
+          <Heading id="register-intro-title" level={1} type="display-1">
+            让饮食记录成为一种轻松的日常
+          </Heading>
+          <Text as="p">集中管理饮食、营养趋势和个人档案，为每一次选择提供清晰的膳食参考。</Text>
         </div>
 
         <ul className="auth-page__benefits" aria-label="产品特点">
@@ -27,16 +31,16 @@ export function RegisterPage() {
       <section className="auth-page__form-area" aria-labelledby="register-title">
         <Surface className="register-card">
           <div className="register-card__header">
-            <span className="register-card__step">创建个人账号</span>
-            <h2 id="register-title">欢迎加入</h2>
-            <p>先完成基础注册，健康档案可以稍后继续完善。</p>
+            <Badge className="register-card__step" label="创建个人账号" variant="green" />
+            <Heading id="register-title" level={2}>欢迎加入</Heading>
+            <Text as="p" color="secondary">先完成基础注册，健康档案可以稍后继续完善。</Text>
           </div>
 
           <RegisterForm />
 
-          <div className="register-card__footer">
+          <Text as="div" className="register-card__footer" color="secondary">
             已有账号？<Link to="/login">返回登录</Link>
-          </div>
+          </Text>
         </Surface>
       </section>
     </main>
