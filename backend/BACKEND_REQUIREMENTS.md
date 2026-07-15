@@ -15,13 +15,20 @@
   → 返回最近 7 天趋势
 ```
 
-后端请求统一经过：
+后端请求先经过：
 
 ```text
-Router → Middleware → Handler → Service → Repository → MongoDB
+Router → Middleware → Handler
 ```
 
-业务接口不得绕过 Service 直接访问 Repository，也不得在 Handler 中直接操作 MongoDB。
+Handler 后续按业务复杂度选择调用方式：
+
+```text
+简单 CRUD：Handler → Store → MongoDB
+复杂业务：Handler → Service → Store → MongoDB
+```
+
+Handler 和 Service 都不得直接操作 MongoDB Driver。Service 只承载真实业务规则和流程，不为简单转发而创建。
 
 ## 2. 当前功能
 
@@ -91,7 +98,7 @@ Food 只来自：
 - MongoDB 和 API 后续通过 Docker Compose 提供本地环境。
 - 当前不建设健康检查、监控、追踪或复杂运维能力。
 
-当前先建立六层骨架；具体业务模块在实现对应功能时再加入，不提前创建无用空模块。
+当前只保留 Router、Middleware、Handler、按需 Service、Model 和 Store 的简单骨架；具体业务模块在实现对应功能时再加入，不提前创建无用空模块或接口。Model 只表示共享业务数据，不是请求必须经过的一层。
 
 ## 6. 手工验收
 
@@ -114,3 +121,14 @@ Food 只来自：
 - 爬虫、图片识别和自然语言录入。
 - 长期历史分析。
 - 健康检查、自动化测试体系和复杂基础设施。
+
+## 8. 后续 AI 和知识库扩展边界
+
+当前不实现以下能力，但后端需要保持未来可扩展：
+
+- 公共食品知识库与用户核心业务库隔离；未来 AI 可以使用独立只读凭证查询公共知识，不直接读取用户私有集合。
+- 用户档案、目标、偏好、饮食记录、汇总和趋势继续由 Go API 按当前用户权限提供。
+- 后续可以增加聚合的 Agent 上下文工具，一次返回完成问答或推荐所需的用户数据，避免大量细粒度接口调用。
+- AI 只负责知识检索、自然语言解释和提出候选建议；营养计算、过敏原等约束过滤以及最终写入由 Go Service 完成。
+- AI 发起的写操作必须经过用户确认，并复用现有 Service 业务规则。
+- 爬虫数据进入清洗和校验流程后才能成为正式 Food，不能直接作为可信营养数据使用。

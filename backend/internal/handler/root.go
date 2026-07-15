@@ -1,29 +1,15 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// AppService 是 RootHandler 需要的 Service 能力。
-type AppService interface {
-	Message(context.Context) string
-}
-
-// RootHandler 处理根路径的 HTTP 输入输出。
-type RootHandler struct {
-	service AppService
-}
-
-func NewRootHandler(service AppService) *RootHandler {
-	return &RootHandler{service: service}
-}
-
-func (h *RootHandler) Get(c *gin.Context) {
+// Root 用于开发时手工确认 Gin 已启动。
+func Root(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": h.service.Message(c.Request.Context()),
+		"message": "HealthDiet API",
 	})
 }
 
