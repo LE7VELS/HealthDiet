@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { Banner, Button, PasswordField, Text, TextField, useAppToast } from '../../../components/ui'
 import { ApiError, registerUser } from '../../../lib/api'
-import { activateDemoSession } from '../../../lib/storage/session'
+import { activateSession } from '../../../lib/storage/session'
 import { registerSchema, type RegisterFormValues } from '../schemas/register-schema'
 
 const defaultValues: RegisterFormValues = {
@@ -35,15 +35,28 @@ export function RegisterForm() {
         password: values.password,
       })
 
-      activateDemoSession(result.sessionId)
+      activateSession(result)
       showToast({
         body: '注册成功，接下来可以完善个人档案。',
-        autoHideDuration: 5000,
+        autoHideDuration: 2000,
         uniqueID: 'registration-success',
       })
       navigate('/app/profile', { replace: true })
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
+      if (error instanceof ApiError && error.code === 'VALIDATION_ERROR' && error.fields.length > 0) {
+        // 服务端校验是最终边界，将合同中的字段错误落回对应输入框并保留用户填写内容。
+        for (const fieldError of error.fields) {
+          if (fieldError.field === 'username' || fieldError.field === 'email' || fieldError.field === 'password') {
+            setError(fieldError.field, { message: fieldError.message })
+          }
+        }
+        return
+      }
+      if (error instanceof ApiError && error.code === 'USERNAME_CONFLICT') {
+        setError('username', { message: error.message }, { shouldFocus: true })
+        return
+      }
+      if (error instanceof ApiError && error.code === 'EMAIL_CONFLICT') {
         setError('email', { message: error.message }, { shouldFocus: true })
         return
       }

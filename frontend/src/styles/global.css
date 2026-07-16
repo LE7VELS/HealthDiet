@@ -312,6 +312,28 @@ a {
     var(--color-background-body);
 }
 
+/* 受保护路由在挂载 AppShell 前验证 JWT，状态页避免验证期间短暂展示业务内容。 */
+.route-status-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-background-body);
+}
+
+.route-status-card {
+  display: grid;
+  width: min(100%, 480px);
+  gap: 20px;
+  padding: 28px;
+  background: var(--color-background-card);
+}
+
+.route-status-card p {
+  margin: 0;
+  text-align: center;
+}
+
 .public-page .placeholder {
   width: min(100%, 560px);
 }

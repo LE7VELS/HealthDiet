@@ -16,7 +16,7 @@ import {
   useAppToast,
 } from '../../components/ui'
 import { logoutUser } from '../../lib/api'
-import { clearDemoSession } from '../../lib/storage/session'
+import { clearSession, getSession } from '../../lib/storage/session'
 import { pageTitles, primaryNavigation } from '../route-config'
 
 const navigationIcons = [
@@ -50,6 +50,8 @@ export function AppShell() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const showToast = useAppToast()
+  const currentUser = getSession()?.user
+  // Food 详情包含动态 ID，不能直接通过精确路径表取得页面标题。
   const title = location.pathname.startsWith('/app/foods/')
     ? '食品 / 菜谱详情'
     : (pageTitles[location.pathname] ?? '智能膳食助手')
@@ -61,11 +63,11 @@ export function AppShell() {
     } catch {
       // 即使远端会话注销失败，也要清除本地会话，避免用户被困在登录状态。
     } finally {
-      clearDemoSession()
+      clearSession()
       queryClient.clear()
       showToast({
         body: '你已安全退出登录。',
-        autoHideDuration: 3500,
+        autoHideDuration: 1500,
         uniqueID: 'logout-success',
       })
       navigate('/login', { replace: true })
@@ -116,9 +118,9 @@ export function AppShell() {
           <DropdownMenu
             button={{
               className: 'shell__user-button',
-              icon: <Badge label="演" variant="green" />,
+              icon: <Badge label={currentUser?.username.slice(0, 1) || '用'} variant="green" />,
               isIconOnly: true,
-              label: '打开演示用户菜单',
+              label: '打开用户菜单',
               size: 'md',
               tooltip: '账户菜单',
               variant: 'ghost',
@@ -129,13 +131,13 @@ export function AppShell() {
             placement="below"
           >
             <HStack align="center" className="shell__user-menu-account" gap={2}>
-              <Badge label="演" variant="green" />
+              <Badge label={currentUser?.username.slice(0, 1) || '用'} variant="green" />
               <VStack gap={0.5}>
-                <Text type="label" weight="bold">演示用户</Text>
-                <Text color="secondary" type="supporting">demo@example.com</Text>
+                <Text type="label" weight="bold">{currentUser?.username ?? '当前用户'}</Text>
+                <Text color="secondary" type="supporting">{currentUser?.email ?? ''}</Text>
               </VStack>
             </HStack>
-            <Badge className="shell__session-badge" label="演示会话" variant="green" />
+            <Badge className="shell__session-badge" label="已登录" variant="green" />
             <DropdownMenuItem
               description="查看和完善账号资料"
               icon={<Icon icon="wrench" />}
@@ -143,7 +145,7 @@ export function AppShell() {
               onClick={() => navigate('/app/profile')}
             />
             <DropdownMenuItem
-              description="清除本地演示会话"
+              description="清除当前登录状态"
               icon={<Icon icon="close" />}
               isDisabled={isLoggingOut}
               label={isLoggingOut ? '正在退出…' : '退出登录'}
