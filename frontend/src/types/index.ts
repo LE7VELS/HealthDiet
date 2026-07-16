@@ -19,6 +19,9 @@ export type UserProfile = {
   notes?: string
 }
 
+// AuthUser 是认证接口允许返回的最小用户视图，不包含档案和任何敏感字段。
+export type AuthUser = Pick<UserProfile, 'id' | 'username' | 'email'>
+
 export type Food = {
   id: string
   name: string
@@ -64,7 +67,7 @@ export type Recommendation = {
 }
 
 export type AppBootstrap = {
-  user: Pick<UserProfile, 'id' | 'username' | 'email'>
+  user: AuthUser
 }
 
 export type RegisterRequest = {
@@ -74,8 +77,10 @@ export type RegisterRequest = {
 }
 
 export type RegisterResponse = {
-  sessionId: string
-  user: Pick<UserProfile, 'id' | 'username' | 'email'>
+  accessToken: string
+  tokenType: 'Bearer'
+  expiresIn: number
+  user: AuthUser
 }
 
 export type LoginRequest = {
@@ -84,6 +89,8 @@ export type LoginRequest = {
 }
 
 export type LoginResponse = {
-  sessionId: string
-  user: Pick<UserProfile, 'id' | 'username' | 'email'>
+  accessToken: string
+  tokenType: 'Bearer'
+  expiresIn: number
+  user: AuthUser
 }

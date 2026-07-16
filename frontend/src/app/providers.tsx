@@ -3,6 +3,7 @@ import { useState, type PropsWithChildren } from 'react'
 import { AppThemeProvider, AppToastViewport } from '../components/ui'
 
 export function AppProviders({ children }: PropsWithChildren) {
+  // QueryClient 必须在组件生命周期内保持同一实例，否则重渲染会丢失请求缓存。
   const [queryClient] = useState(
     () =>
       new QueryClient({

@@ -13,6 +13,7 @@ func Root(c *gin.Context) {
 	})
 }
 
+// NotFound 为所有未注册路径返回统一资源不存在错误，避免 Gin 默认的纯文本 404。
 func NotFound(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"error": gin.H{

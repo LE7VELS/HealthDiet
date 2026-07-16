@@ -13,6 +13,7 @@ export const router = createBrowserRouter([
     element: <Navigate to="/login" replace />,
   },
   {
+    // 登录和注册只对未登录用户开放，避免已登录用户重复进入认证流程。
     element: <PublicOnlyRoute />,
     children: [
       { path: '/login', element: <LoginPage /> },
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    // 业务页面统一经过登录守卫，再由 AppShell 提供桌面端和移动端导航。
     element: <ProtectedRoute />,
     children: [
       {

@@ -142,13 +142,13 @@ Authorization: Bearer <accessToken>
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/foods` | 查询 Food |
+| GET | `/foods` | 查询食品或菜谱 |
 | GET | `/foods/{foodId}` | Food 详情 |
 | POST | `/foods/custom` | 创建自定义 Food |
 | PATCH | `/foods/{foodId}` | 修改自己的自定义 Food |
 | DELETE | `/foods/{foodId}` | 删除自己的自定义 Food |
 
-查询参数：`query`、`category`、`scope=public|custom`、`page`、`pageSize`。默认每页 20，最大 100。
+查询参数：`query`、`kind=food|recipe`、`category`、`scope=public|custom`、`page`、`pageSize`。默认每页 20，最大 100。
 
 Food 对象：
 
@@ -157,6 +157,7 @@ Food 对象：
   "id": "food-id",
   "name": "燕麦片",
   "aliases": ["燕麦"],
+  "kind": "food",
   "category": "staple",
   "sourceType": "seed",
   "isOwnedByCurrentUser": false,
@@ -167,15 +168,98 @@ Food 对象：
     "fatG": 6.7,
     "carbohydrateG": 66.3,
     "fiberG": 10.1
-  }
+  },
+  "recipe": null
 }
 ```
 
 `sourceType`：`seed`、`import`、`custom`。
 
+`kind`：`food` 表示食品，`recipe` 表示菜品/菜谱。当前系统不区分“菜品”和“菜谱”；两种类型都是 Food，可以加入饮食记录。
+
 `category`：`staple`、`meat_egg_dairy`、`vegetable`、`fruit`、`legume`、`dish`、`beverage`、`other`。
 
-自定义 Food 的热量、蛋白质、脂肪和碳水化合物必填且非负；纤维和标准份量可以为 `null`。
+菜谱类型的 Food 响应示例：
+
+```json
+{
+  "id": "recipe-id",
+  "name": "番茄炒鸡蛋",
+  "aliases": [],
+  "kind": "recipe",
+  "category": "dish",
+  "sourceType": "custom",
+  "isOwnedByCurrentUser": true,
+  "standardServingGrams": 165,
+  "nutrientsPer100g": {
+    "caloriesKcal": 112.4,
+    "proteinG": 6.1,
+    "fatG": 7.2,
+    "carbohydrateG": 4.9,
+    "fiberG": 0.8
+  },
+  "recipe": {
+    "ingredients": [
+      {"foodId": "egg-id", "foodName": "鸡蛋", "amountGrams": 120},
+      {"foodId": "tomato-id", "foodName": "番茄", "amountGrams": 200},
+      {"foodId": "oil-id", "foodName": "食用油", "amountGrams": 10}
+    ],
+    "steps": ["番茄切块，鸡蛋打散", "炒熟鸡蛋后加入番茄"],
+    "servings": 2,
+    "finishedWeightGrams": null,
+    "calculationBasis": "ingredient_weight_estimate",
+    "totalNutrients": {
+      "caloriesKcal": 370.9,
+      "proteinG": 20.1,
+      "fatG": 23.8,
+      "carbohydrateG": 16.2,
+      "fiberG": 2.6
+    },
+    "perServingNutrients": {
+      "caloriesKcal": 185.5,
+      "proteinG": 10.1,
+      "fatG": 11.9,
+      "carbohydrateG": 8.1,
+      "fiberG": 1.3
+    }
+  }
+}
+```
+
+`kind=food` 时 `recipe` 必须为 `null`。`kind=recipe` 时：
+
+- `ingredients` 和 `steps` 至少各有一项，`servings` 必须大于 0。
+- 每个原料通过 `foodId` 引用当前用户可访问的 `kind=food`，`amountGrams` 必须大于 0；当前不允许引用另一个菜谱。
+- `finishedWeightGrams` 可选；填写时必须大于 0。
+- `calculationBasis=finished_weight` 表示每 100g 营养按成品重量计算；`ingredient_weight_estimate` 表示未填写成品重量，暂按原料总重量估算。
+- `foodName`、`totalNutrients`、`perServingNutrients`、顶层 `standardServingGrams` 和 `nutrientsPer100g` 均由后端计算，客户端不得提交或覆盖。
+- 制作步骤当前只用于记录和展示，不参与营养公式。
+- 任一原料缺少热量、蛋白质、脂肪或碳水化合物时返回 `FOOD_DATA_INCOMPLETE`；纤维缺失时相关菜谱纤维值返回 `null`。
+
+创建普通食品时提交 `name`、`aliases`、`kind=food`、`category`、`standardServingGrams` 和 `nutrientsPer100g`。热量、蛋白质、脂肪和碳水化合物必填且非负；纤维和标准份量可以为 `null`。
+
+创建菜谱时提交：
+
+```json
+{
+  "name": "番茄炒鸡蛋",
+  "aliases": [],
+  "kind": "recipe",
+  "category": "dish",
+  "recipe": {
+    "ingredients": [
+      {"foodId": "egg-id", "amountGrams": 120},
+      {"foodId": "tomato-id", "amountGrams": 200},
+      {"foodId": "oil-id", "amountGrams": 10}
+    ],
+    "steps": ["番茄切块，鸡蛋打散", "炒熟鸡蛋后加入番茄"],
+    "servings": 2,
+    "finishedWeightGrams": null
+  }
+}
+```
+
+服务端生成 `id`，并固定 `sourceType=custom` 和当前用户所有权。修改普通食品时接受其可编辑字段的子集；修改菜谱组成、份数、成品重量或步骤时提交完整 `recipe`，由后端重新校验并计算。当前不支持在 `food` 和 `recipe` 之间直接修改 `kind`，需要新建正确类型的 Food。
 
 ## 6. 图片
 
@@ -249,6 +333,7 @@ Food 对象：
     {
       "foodId": "food-id",
       "foodName": "燕麦片",
+      "foodKind": "food",
       "amount": {"value": 80, "unit": "g"},
       "normalizedGrams": 80,
       "nutrients": {

@@ -10,7 +10,7 @@ import {
   useAppToast,
 } from '../../../components/ui'
 import { ApiError, loginUser } from '../../../lib/api'
-import { activateDemoSession } from '../../../lib/storage/session'
+import { activateSession } from '../../../lib/storage/session'
 import { loginSchema, type LoginFormValues } from '../schemas/login-schema'
 
 const defaultValues: LoginFormValues = {
@@ -57,10 +57,10 @@ export function LoginForm() {
         password: values.password,
       })
 
-      activateDemoSession(result.sessionId, values.remember)
+      activateSession(result, values.remember)
       showToast({
         body: `欢迎回来，${result.user.username}。`,
-        autoHideDuration: 4000,
+        autoHideDuration: 2000,
         uniqueID: 'login-success',
       })
       navigate(getRedirectTarget(location.state), { replace: true })

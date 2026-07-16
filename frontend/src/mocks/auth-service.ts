@@ -1,5 +1,6 @@
 import { ApiError } from '../lib/api/client'
-import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '../types'
+import { getSession } from '../lib/storage/session'
+import type { AuthUser, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '../types'
 
 type MockAccount = {
   id: string
@@ -43,7 +44,9 @@ export async function loginMockUser(request: LoginRequest): Promise<LoginRespons
   }
 
   return {
-    sessionId: crypto.randomUUID(),
+    accessToken: crypto.randomUUID(),
+    tokenType: 'Bearer',
+    expiresIn: 3600,
     user: {
       id: account.id,
       username: account.username,
@@ -54,6 +57,16 @@ export async function loginMockUser(request: LoginRequest): Promise<LoginRespons
 
 export async function logoutMockUser(): Promise<void> {
   await simulateDelay()
+}
+
+// Mock 通过现有本地会话返回同形 DTO，仅用于显式开启 Mock 时保持路由守卫行为一致。
+export async function getCurrentMockUser(): Promise<AuthUser> {
+  await simulateDelay()
+  const user = getSession()?.user
+  if (!user) {
+    throw new ApiError('登录状态无效或已过期', 401, 'UNAUTHENTICATED')
+  }
+  return user
 }
 
 export async function registerMockUser(request: RegisterRequest): Promise<RegisterResponse> {
@@ -73,7 +86,9 @@ export async function registerMockUser(request: RegisterRequest): Promise<Regist
   mockAccounts.push(account)
 
   return {
-    sessionId: crypto.randomUUID(),
+    accessToken: crypto.randomUUID(),
+    tokenType: 'Bearer',
+    expiresIn: 3600,
     user: {
       id: account.id,
       username: account.username,

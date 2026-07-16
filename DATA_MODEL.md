@@ -23,7 +23,9 @@
 - `meal_records`
 - `uploads`
 
-当前不建立菜谱、AI、推荐或每日汇总集合。每日汇总和趋势直接从饮食记录计算。
+当前不建立独立菜谱、AI、推荐或每日汇总集合。食品和菜谱统一保存在 `foods`；每日汇总和趋势直接从饮食记录计算。
+
+Go 后端启动时幂等创建上述集合和本文件定义的索引。初始化只补齐结构，不清空集合，也不自动插入虚构 Food 数据。
 
 ## 2. `users`
 
@@ -113,6 +115,7 @@ unique(email_normalized)
   name: string,
   name_normalized: string,
   aliases: [string],
+  kind: "food" | "recipe",
   category: string,
   source_type: "seed" | "import" | "custom",
   source_key: string | null,
@@ -125,11 +128,63 @@ unique(email_normalized)
     carbohydrate_mg: int64,
     fiber_mg: int64 | null
   },
+  recipe: {
+    ingredients: [
+      {
+        food_id: ObjectId,
+        food_name_snapshot: string,
+        amount_mg: int64,
+        nutrients_per_100g_snapshot: {
+          calories_milli_kcal: int64,
+          protein_mg: int64,
+          fat_mg: int64,
+          carbohydrate_mg: int64,
+          fiber_mg: int64 | null
+        },
+        calculated_nutrients: {
+          calories_milli_kcal: int64,
+          protein_mg: int64,
+          fat_mg: int64,
+          carbohydrate_mg: int64,
+          fiber_mg: int64 | null
+        }
+      }
+    ],
+    steps: [string],
+    servings: int32,
+    finished_weight_mg: int64 | null,
+    calculation_weight_mg: int64,
+    calculation_basis: "finished_weight" | "ingredient_weight_estimate",
+    total_nutrients: {
+      calories_milli_kcal: int64,
+      protein_mg: int64,
+      fat_mg: int64,
+      carbohydrate_mg: int64,
+      fiber_mg: int64 | null
+    },
+    per_serving_nutrients: {
+      calories_milli_kcal: int64,
+      protein_mg: int64,
+      fat_mg: int64,
+      carbohydrate_mg: int64,
+      fiber_mg: int64 | null
+    }
+  } | null,
   created_at: Date,
   updated_at: Date,
   deleted_at: Date | null
 }
 ```
+
+- `kind=food` 时 `recipe` 为 `null`。
+- `kind=recipe` 表示菜品/菜谱，当前数据模型不区分这两个中文概念；`ingredients`、`steps` 至少各有一项，`servings` 大于 0。
+- 原料必须引用创建者可访问的 `kind=food`，当前不允许引用菜谱；原料用量使用毫克整数且大于 0。
+- 创建或修改菜谱时保存原料名称和营养快照，基础食品后续修改不会悄悄改变已有菜谱；用户主动编辑菜谱时重新读取原料并计算。
+- 菜谱总营养等于各原料 `calculated_nutrients` 之和，每份营养等于总营养除以 `servings`。
+- 提供 `finished_weight_mg` 时，`calculation_weight_mg` 使用成品重量；否则使用原料重量之和，并将 `calculation_basis` 标记为估算。
+- 顶层 `nutrients_per_100g` 由总营养和 `calculation_weight_mg` 计算；顶层 `standard_serving_mg` 由 `calculation_weight_mg / servings` 计算。
+- 步骤文本当前不参与营养计算，不根据做法猜测营养损耗、吸油量或水分变化。
+- 任一原料缺少热量或宏量营养时不保存菜谱；纤维缺失时，菜谱对应的纤维快照和计算结果保持 `null`。
 
 来源规则：
 
@@ -163,6 +218,7 @@ unique(source_type, source_key)  # seed/import
     {
       food_id: ObjectId,
       food_name_snapshot: string,
+      food_kind_snapshot: "food" | "recipe",
       input_amount: {
         value_milli_units: int64,
         unit: "g" | "serving"
@@ -258,6 +314,10 @@ users._id
   ├─ foods.owner_user_id
   ├─ meal_records.user_id
   └─ uploads.user_id
+
+foods._id
+  ├─ foods.recipe.ingredients.food_id
+  └─ meal_records.items.food_id
 ```
 
 MongoDB 不提供外键。复杂写入由 Go Service 检查资源存在、所有者和状态；简单私有查询由 Store 强制要求 `user_id`。
@@ -268,9 +328,10 @@ Seed 与 JSON/CSV 导入至少包含：
 
 - `source_key`
 - `name`
+- `kind`
 - `category`
-- 每 100g 热量、蛋白质、脂肪和碳水化合物
-- 可选标准份量和纤维
+- `kind=food` 时提供每 100g 热量、蛋白质、脂肪和碳水化合物，以及可选标准份量和纤维
+- `kind=recipe` 时提供基础食品原料引用、克数、份数、可选成品重量和制作步骤；使用 JSON 导入嵌套结构，营养仍由后端计算
 
 使用 `source_type + source_key` 更新或插入，避免重复导入。
 
