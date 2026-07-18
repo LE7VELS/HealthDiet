@@ -91,6 +91,7 @@ Food 数据只来自：
 - React Router。
 - TanStack Query。
 - React Hook Form + Zod。
+- Axios。
 - ECharts。
 
 ### 后端

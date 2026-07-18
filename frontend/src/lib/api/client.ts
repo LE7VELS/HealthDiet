@@ -1,3 +1,4 @@
+import axios, { type AxiosRequestConfig } from 'axios'
 import { apiConfig } from './config'
 import { clearSession, getAccessToken } from '../storage/session'
 
@@ -15,41 +16,50 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+type ApiErrorResponse = {
+  error?: { code?: string; message?: string; fields?: ApiFieldError[] }
+}
+
+// apiRequest 是页面访问后端的统一 Axios 边界：集中拼接基础地址、附加 JWT，并把网络或 API 错误
+// 转换为稳定的 ApiError。业务模块只提供相对路径和 Axios 配置，不直接处理会话失效跳转。
+export async function apiRequest<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
   const accessToken = getAccessToken()
-  // 所有真实 API 请求从这里统一拼接基础地址，页面和业务模块不直接拼 URL。
-  const response = await fetch(`${apiConfig.baseUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...init?.headers,
-    },
-  })
+  try {
+    // Axios 自动序列化 data 中的普通对象并解析 JSON 响应，调用方无需手动 JSON.stringify。
+    const response = await axios.request<T>({
+      ...config,
+      baseURL: apiConfig.baseUrl,
+      url: path,
+      headers: {
+        Accept: 'application/json',
+        ...config?.headers,
+        // Authorization 必须由统一会话层最后写入，业务调用方不能用自定义 Header 覆盖当前用户身份。
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    })
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as {
-      error?: { code?: string; message?: string; fields?: ApiFieldError[] }
-    } | null
-    const error = body?.error
-    if (response.status === 401 && error?.code === 'UNAUTHENTICATED') {
-      clearSession()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.assign('/login')
-      }
+    // Axios 对 204 返回空字符串；统一客户端合同仍以 void 表示无响应体。
+    if (response.status === 204) {
+      return undefined as T
     }
-    throw new ApiError(
-      error?.message ?? '请求失败，请稍后重试。',
-      response.status,
-      error?.code,
-      error?.fields,
-    )
+    return response.data
+  } catch (cause) {
+    if (axios.isAxiosError<ApiErrorResponse>(cause)) {
+      const status = cause.response?.status ?? 0
+      const error = cause.response?.data?.error
+      if (status === 401 && error?.code === 'UNAUTHENTICATED') {
+        clearSession()
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.assign('/login')
+        }
+      }
+      throw new ApiError(
+        error?.message ?? (cause.response ? '请求失败，请稍后重试。' : '无法连接服务器，请检查网络后重试。'),
+        status,
+        error?.code,
+        error?.fields,
+      )
+    }
+    throw cause
   }
-
-  if (response.status === 204) {
-    // 204 没有响应体，跳过 JSON 解析；调用方应将对应返回类型声明为 void。
-    return undefined as T
-  }
-
-  return response.json() as Promise<T>
 }

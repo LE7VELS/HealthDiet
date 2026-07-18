@@ -93,7 +93,7 @@
 
 ## 5. API 边界
 
-- 页面只调用 `lib/api`，基础地址来自 `VITE_API_BASE_URL`。
+- 页面只调用 `lib/api`；`lib/api` 使用统一 Axios 客户端发起 HTTP 请求，基础地址来自 `VITE_API_BASE_URL`。
 - 请求、响应、错误、分页、时间和上传遵守 `API_CONTRACT.md`。
 - 后端接口尚未实现时允许默认使用 Mock 支撑前端开发；对应 Go API 实现并联调通过后，按接口或业务模块切换为真实请求。
 - Mock 不能作为已实现接口或最终主流程的完成标准，最终验收使用真实 Go API。

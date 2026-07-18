@@ -24,8 +24,7 @@ export function registerUser(request: RegisterRequest): Promise<RegisterResponse
 
   return apiRequest<DataResponse<RegisterResponse>>('/auth/register', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+    data: request,
   }).then((response) => response.data)
 }
 
@@ -37,8 +36,7 @@ export function loginUser(request: LoginRequest): Promise<LoginResponse> {
 
   return apiRequest<DataResponse<LoginResponse>>('/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+    data: request,
   }).then((response) => response.data)
 }
 

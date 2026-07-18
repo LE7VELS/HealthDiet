@@ -9,6 +9,7 @@
 - React Router。
 - TanStack Query。
 - React Hook Form + Zod。
+- Axios。
 - ECharts。
 
 不增加 Redux 或第二套 UI、请求缓存方案，除非出现明确需求。
@@ -18,7 +19,7 @@
 - 页面和路由放在 `app`、`pages`。
 - 业务按 `features` 分为 auth、profile、foods、meals、nutrition。
 - Astryx 组件通过 `components/ui` 封装。
-- API 调用集中在 `lib/api`，页面不直接拼 URL。
+- API 调用集中在 `lib/api`，页面不直接导入 Axios 或拼接 URL；`lib/api/client.ts` 统一配置基础地址、Bearer Token、响应解析和错误转换。
 - 使用 TypeScript strict，避免 `any`。
 - API DTO 和页面展示模型可以分开，但不要过度抽象。
 - 食品和菜谱共用 `foods` 业务模块、页面与 API DTO，通过 Food 的 `kind` 区分，不复制两套状态和请求逻辑。
@@ -34,6 +35,8 @@
 ## 3. API 和状态
 
 - 地址来自 `VITE_API_BASE_URL`。
+- 业务 API 模块通过统一的 `apiRequest` 传递 Axios 请求配置；普通 JSON 请求使用 `data` 传入对象，由 Axios 负责序列化，不重复手写 `JSON.stringify`。
+- 统一请求层允许业务接口补充必要 Header，但最终 `Authorization` 必须由会话层写入，业务调用方不得覆盖当前用户身份。
 - 后端接口尚未完成时允许默认启用 Mock；接口实现并联调通过后，按接口或业务模块移除对应 Mock 分支，不要求在后端尚未就绪时全局关闭 Mock。
 - Mock 和真实请求保持相同 DTO，页面组件不直接判断数据来源；最终主流程必须使用真实 Go API。
 - 服务端数据使用 TanStack Query。
