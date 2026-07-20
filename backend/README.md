@@ -61,6 +61,9 @@ Router + Middleware
 - Service 只编写包含规则、计算或多个步骤的复杂业务。
 - Model 保存 Handler、Service 和 Store 共享的业务结构，不是必须经过的一层。
 - Store 集中实现 MongoDB 连接、集合与索引初始化以及后续数据访问。
+- Apperr 集中定义跨层识别的哨兵错误；Store 转换 Driver 错误，Service 转换业务语义，Handler 统一映射 HTTP 响应。
+
+跨层实现同一业务时，文件名使用职责后缀区分，例如 `auth_handler.go`、`auth_service.go`、`auth_middleware.go`、`user_store.go` 和 `user_model.go`；各包说明文件使用 `<package>_package.go`。
 
 当前 `main.go` 创建并管理共享 Store 的生命周期，再依次装配认证 Service、Handler 和 `router.Dependencies`。Router 的 `New` 只接收这个带命名字段的依赖结构体，后续增加用户资料、Food 等 Handler 时不会形成很长的位置参数列表；Store 仍只注入 Handler 或 Service，不直接交给 Router。
 

@@ -1,5 +1,7 @@
 package middleware
 
+// 本文件实现受保护路由共用的 Bearer JWT 认证边界。
+
 import (
 	"log"
 	"net/http"

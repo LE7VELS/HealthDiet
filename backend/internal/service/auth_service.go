@@ -1,5 +1,7 @@
 package service
 
+// 本文件实现注册、登录和当前用户查询的认证业务流程。
+
 import (
 	"context"
 	"errors"
@@ -9,20 +11,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/LE7VELS/HealthDiet/backend/internal/apperr"
 	"github.com/LE7VELS/HealthDiet/backend/internal/model"
 	"github.com/LE7VELS/HealthDiet/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
-)
-
-var (
-	// ErrUsernameConflict 表示规范化后的用户名已被占用。
-	ErrUsernameConflict = errors.New("用户名已被使用")
-	// ErrEmailConflict 表示规范化后的邮箱已被注册。
-	ErrEmailConflict = errors.New("邮箱已被注册")
-	// ErrInvalidCredentials 统一覆盖账号不存在和密码不匹配，避免账号枚举。
-	ErrInvalidCredentials = errors.New("账号或密码不正确")
-	// ErrInvalidInput 是所有字段校验错误的通用标识，详细字段保存在 InputError 中。
-	ErrInvalidInput = errors.New("认证参数不正确")
 )
 
 // RegisterInput 是注册业务所需的最小输入，不包含 HTTP、JSON 或 MongoDB 实现细节。
@@ -44,10 +36,10 @@ type InputError struct {
 }
 
 // Error 实现 error 接口，并返回不包含用户输入和内部细节的稳定消息。
-func (e *InputError) Error() string { return ErrInvalidInput.Error() }
+func (e *InputError) Error() string { return apperr.ErrInvalidInput.Error() }
 
 // Unwrap 允许调用方通过 errors.Is 识别通用输入错误，同时仍可通过 errors.As 取得字段明细。
-func (e *InputError) Unwrap() error { return ErrInvalidInput }
+func (e *InputError) Unwrap() error { return apperr.ErrInvalidInput }
 
 // AuthResult 汇总签发后的访问 Token 与用户模型；Handler 必须裁剪 User 后再返回客户端。
 type AuthResult struct {
@@ -89,13 +81,13 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 
 	// 提前检查用于返回明确的冲突字段；MongoDB 唯一索引仍是并发写入时的最终保证。
 	if _, err := s.store.FindUserByUsername(ctx, username); err == nil {
-		return AuthResult{}, ErrUsernameConflict
-	} else if !errors.Is(err, store.ErrUserNotFound) {
+		return AuthResult{}, apperr.ErrUsernameConflict
+	} else if !errors.Is(err, apperr.ErrUserNotFound) {
 		return AuthResult{}, err
 	}
 	if _, err := s.store.FindUserByEmail(ctx, email); err == nil {
-		return AuthResult{}, ErrEmailConflict
-	} else if !errors.Is(err, store.ErrUserNotFound) {
+		return AuthResult{}, apperr.ErrEmailConflict
+	} else if !errors.Is(err, apperr.ErrUserNotFound) {
 		return AuthResult{}, err
 	}
 
@@ -107,11 +99,16 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 	user, err := s.store.CreateUser(ctx, username, email, string(hash))
 	if err != nil {
 		// 唯一索引是并发注册的最终安全边界；重复时再次查询以返回稳定的业务错误。
-		if errors.Is(err, store.ErrUserDuplicate) {
-			if _, findErr := s.store.FindUserByUsername(ctx, username); findErr == nil {
-				return AuthResult{}, ErrUsernameConflict
+		if errors.Is(err, apperr.ErrUserDuplicate) {
+			_, findErr := s.store.FindUserByUsername(ctx, username)
+			if findErr == nil {
+				return AuthResult{}, apperr.ErrUsernameConflict
 			}
-			return AuthResult{}, ErrEmailConflict
+			if errors.Is(findErr, apperr.ErrUserNotFound) {
+				return AuthResult{}, apperr.ErrEmailConflict
+			}
+			// 冲突字段确认失败时不能猜测为邮箱冲突，否则会把数据库异常伪装成可重试的业务失败。
+			return AuthResult{}, fmt.Errorf("确认注册冲突字段: %w", findErr)
 		}
 		return AuthResult{}, err
 	}
@@ -121,25 +118,33 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 // Login 使用统一的无效凭证错误处理“不存在用户”和“密码不匹配”，避免账号枚举。
 func (s *AuthService) Login(ctx context.Context, identifier, password string) (AuthResult, error) {
 	if strings.TrimSpace(identifier) == "" || password == "" {
-		return AuthResult{}, ErrInvalidCredentials
+		return AuthResult{}, apperr.ErrInvalidCredentials
 	}
 	user, err := s.store.FindUserByIdentifier(ctx, identifier)
 	if err != nil {
-		if errors.Is(err, store.ErrUserNotFound) {
-			return AuthResult{}, ErrInvalidCredentials
+		if errors.Is(err, apperr.ErrUserNotFound) {
+			return AuthResult{}, apperr.ErrInvalidCredentials
 		}
 		return AuthResult{}, err
 	}
 	// bcrypt 比较负责处理哈希格式和恒定成本，不能自行比较字符串或重新哈希明文。
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
-		return AuthResult{}, ErrInvalidCredentials
+		return AuthResult{}, apperr.ErrInvalidCredentials
 	}
 	return s.resultFor(user)
 }
 
 // CurrentUser 通过认证后的不透明用户 ID 读取账号，供 /auth/me 使用。
 func (s *AuthService) CurrentUser(ctx context.Context, userID string) (model.User, error) {
-	return s.store.FindUserByID(ctx, userID)
+	user, err := s.store.FindUserByID(ctx, userID)
+	if err != nil {
+		// Token 指向的用户已经不存在时视为会话失效，不把 Store 的用户查询语义交给 Handler 判断。
+		if errors.Is(err, apperr.ErrUserNotFound) {
+			return model.User{}, apperr.ErrUnauthenticated
+		}
+		return model.User{}, fmt.Errorf("查询当前用户: %w", err)
+	}
+	return user, nil
 }
 
 // resultFor 集中签发登录与注册共用的访问 Token，避免两条流程产生不同会话语义。

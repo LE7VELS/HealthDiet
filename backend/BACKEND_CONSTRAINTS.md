@@ -72,8 +72,11 @@ Router + Middleware → Handler → Service → Store → MongoDB
 - 使用 `gofmt`。
 - 显式处理错误，避免无意义的 `panic`。
 - `fmt.Errorf("操作说明: %w", err)` 用于在 Store 和 Service 中补充错误上下文；错误到达 Handler 等 HTTP 边界时必须有日志出口，不能只返回通用响应后丢弃详细错误。
+- 需要跨层识别的预期业务错误集中定义在 `internal/apperr`，使用标准库 `errors.Is` 判断；不要在各业务模块重复定义含义相同的哨兵错误，也不要让 `apperr` 依赖 Gin、HTTP 或 MongoDB Driver。
+- Store 负责把 `mongo.ErrNoDocuments`、重复键等 Driver 失败转换为稳定错误；Service 只在业务语义发生变化时转换错误，不能仅为转发而重新创建错误；Handler 统一完成错误到 HTTP 状态码、API 错误码和安全消息的映射。
 - 预期业务失败记录稳定错误码、人类可读安全消息、路径和必要请求元数据即可；未知内部错误记录完整包装错误链。禁止记录明文密码、完整 JWT、连接串和敏感请求体，也不通过日志区分“账号不存在”和“密码错误”。
 - 保持函数和包职责清楚，不为了“分层”制造大量只有一行的文件。
+- 跨层实现同一业务模块时，文件名必须带职责后缀，例如 `auth_handler.go`、`auth_service.go`、`auth_middleware.go`、`user_store.go` 和 `user_model.go`；包说明文件使用 `<package>_package.go`，避免不同目录出现大量难以区分的 `auth.go`、`user.go` 或 `doc.go`。
 - 后端代码需要包含充分且准确的中文注释，不能只在文件顶部或入口函数放一条笼统说明。
 - 每个包要说明职责与依赖边界；导出的类型和函数必须说明用途。未导出的 HTTP DTO、MongoDB Document、错误类型和安全辅助函数，只要字段含义、转换方向或使用限制不直观，也必须说明。
 - Handler 注释要覆盖请求 DTO、响应 DTO、统一错误映射和不可信输入边界；Service 注释要覆盖业务步骤、规范化规则、并发冲突兜底和敏感数据边界；Store 注释要覆盖 BSON 与 Model 转换、查询范围、唯一索引及 Driver 错误转换；Middleware 注释要覆盖上下文写入、拒绝条件和跨域安全策略。

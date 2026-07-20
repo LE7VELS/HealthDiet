@@ -1,5 +1,7 @@
 package store
 
+// 本文件实现 users 集合的数据访问、Driver 错误转换及 Document 与 Model 转换。
+
 import (
 	"context"
 	"errors"
@@ -7,16 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/LE7VELS/HealthDiet/backend/internal/apperr"
 	"github.com/LE7VELS/HealthDiet/backend/internal/model"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-)
-
-var (
-	// ErrUserNotFound 隐藏 MongoDB 的 ErrNoDocuments，避免上层依赖 Driver 错误类型。
-	ErrUserNotFound = errors.New("用户不存在")
-	// ErrUserDuplicate 表示用户名或邮箱触发唯一索引，具体冲突字段由 Service 判定。
-	ErrUserDuplicate = errors.New("用户唯一字段重复")
 )
 
 // userDocument 精确描述 users 集合的 BSON 结构，只在 Store 边界内使用。
@@ -33,7 +29,7 @@ type userDocument struct {
 }
 
 // CreateUser 保存已经完成业务校验和密码哈希的用户，并由 Store 生成 ObjectID 与 UTC 时间。
-// 调用方不得传入明文密码；唯一索引冲突会转换为 ErrUserDuplicate。
+// 调用方不得传入明文密码；唯一索引冲突会转换为 apperr.ErrUserDuplicate。
 func (s *Store) CreateUser(ctx context.Context, username, email, passwordHash string) (model.User, error) {
 	now := time.Now().UTC()
 	document := userDocument{
@@ -50,7 +46,7 @@ func (s *Store) CreateUser(ctx context.Context, username, email, passwordHash st
 	if _, err := s.database.Collection("users").InsertOne(ctx, document); err != nil {
 		// Driver 的重复键错误在数据访问边界转换，上层不需要导入 mongo 包。
 		if mongo.IsDuplicateKeyError(err) {
-			return model.User{}, ErrUserDuplicate
+			return model.User{}, apperr.ErrUserDuplicate
 		}
 		return model.User{}, fmt.Errorf("创建用户: %w", err)
 	}
@@ -82,7 +78,7 @@ func (s *Store) FindUserByIdentifier(ctx context.Context, identifier string) (mo
 func (s *Store) FindUserByID(ctx context.Context, id string) (model.User, error) {
 	objectID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return model.User{}, ErrUserNotFound
+		return model.User{}, apperr.ErrUserNotFound
 	}
 	return s.findUser(ctx, bson.D{{Key: "_id", Value: objectID}})
 }
@@ -92,7 +88,7 @@ func (s *Store) findUser(ctx context.Context, filter bson.D) (model.User, error)
 	var document userDocument
 	if err := s.database.Collection("users").FindOne(ctx, filter).Decode(&document); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return model.User{}, ErrUserNotFound
+			return model.User{}, apperr.ErrUserNotFound
 		}
 		return model.User{}, fmt.Errorf("查询用户: %w", err)
 	}

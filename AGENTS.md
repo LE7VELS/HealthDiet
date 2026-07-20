@@ -25,3 +25,9 @@
 - 修改前检查 Git 状态，不覆盖无关改动。
 - 不提交密钥、真实 `.env`、构建产物和本地上传文件。
 - 未经明确要求，不执行 commit、push、rebase、reset 或强制操作。
+
+## 本地 GitHub 工具
+
+- 本机 `gh` 通过系统 Keyring 保存登录凭据；文档和日志不得记录账号、Token、仓库地址或凭据存储内容。
+- Codex 受限环境可能因无法正确访问系统 Keyring，使 `gh auth status` 错误显示 `401 Bad credentials`。遇到该结果时，先在宿主权限下重新执行只读的 `gh auth status`，不能仅据此要求用户重新登录。
+- 普通提交和推送直接使用 `git`；需要 PR、Issue 或 Actions 功能时，再按需使用宿主权限运行 `gh`。

@@ -55,6 +55,12 @@ logs/
 uploads/
 
 # --------------------
+# Local crawler workspace
+# Crawler experiments and all generated/downloaded contents stay local.
+# --------------------
+/crawler/
+
+# --------------------
 # IDE
 # --------------------
 .vscode/

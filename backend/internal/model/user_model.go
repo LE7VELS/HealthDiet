@@ -1,5 +1,7 @@
 package model
 
+// 本文件定义认证和用户查询流程共享的用户业务模型。
+
 import "time"
 
 // User 是认证流程在 Handler、Service 和 Store 之间共享的业务模型。
